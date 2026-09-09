@@ -1,0 +1,477 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -352,
+        144
+      ],
+      "id": "0403f226-fb2f-45ff-8eec-010d077bd32c",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MCH3IT5mVtmTfzH6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are processing the user's request.\n\nIf the user explicitly asks to SEND an email, use the Gmail Send tool.\nDo not classify the send request as an email.\n\nOtherwise, if the user asks to classify an email, classify it as exactly one of:\n\nURGENT\nNORMAL\nSPAM\n\nFor Gmail-triggered emails, use this email content:\n{{ $json.snippet }}\n\nFor chat requests, use the user's chat message:\n{{ $json.chatInput }}\n\nClassification rules:\n- URGENT = requires immediate attention or is time-sensitive.\n- NORMAL = legitimate email that does not require immediate action.\n- SPAM = unwanted, suspicious, scam-like, promotional, or irrelevant.\n\nFor classification requests, return ONLY:\nURGENT\nNORMAL\nSPAM",
+        "options": {
+          "systemMessage": "You are an email management assistant.\n\nYour job is to classify incoming emails and take the appropriate action.\n\nClassify every incoming email as exactly one of:\n- URGENT\n- NORMAL\n- SPAM\n\nClassification rules:\n- URGENT = requires immediate attention or is time-sensitive.\n- NORMAL = legitimate email that does not require immediate action.\n- SPAM = unwanted, suspicious, scam-like, promotional, or irrelevant.\n\nFor every incoming email:\n\nURGENT:\n1. Add the URGENT Gmail label to the incoming email.\n2. Send an urgent notification email to the user using the dedicated urgent notification Gmail tool.\n\nNORMAL:\n1. Do not add any Gmail label.\n2. Do not send any notification email.\n\nSPAM:\n1. Add the SPAM Gmail label to the incoming email.\n2. Do not send any notification email.\n\nThe Gmail Send tool may also be used when the user explicitly asks you to send an email.\n\nWhen the user explicitly asks you to send an email:\n- Use the recipient email address provided by the user.\n- Create a clear and relevant subject.\n- Write the message requested by the user.\n- Never invent a recipient email address.\n- If the recipient email address is unknown, ask the user for it.\n\nImportant:\n- The urgent notification email is an automatic workflow action and is allowed only for URGENT incoming emails.\n- Do not send the urgent notification for NORMAL or SPAM emails.\n- Do not send emails for NORMAL or SPAM classification.\n- Use the Gmail tools only when required by the rules above.\n\nFor classification, return:\nCategory: URGENT/NORMAL/SPAM\nReason: one short explanation."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -32,
+        64
+      ],
+      "id": "29df1e39-01d6-43bb-8e51-e977c5750e25",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -288,
+        304
+      ],
+      "id": "075be2ae-ac15-493e-ac48-fc3a94dd24e0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6gaAqqfTKD2IZG2x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "URGENT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "4b1ee8bd-f527-4e2f-acea-84825492c929"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "920eb86c-9762-4636-9b3f-bed445bc78cf",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "NORMAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9a733bde-2bca-48b4-936d-67a9aff4b0a7",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "SPAM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        48
+      ],
+      "id": "e647950e-23d8-4f01-93ef-d3e4a41d768f",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bf1fef0b-3cf0-4497-ae0b-f038cf27ca56",
+              "name": "status",
+              "value": "URGENT EMAIL",
+              "type": "string"
+            },
+            {
+              "id": "e8e74175-a7d3-46f9-8590-a046cc1ee74c",
+              "name": "action",
+              "value": "Immediate attention required",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        480,
+        -16
+      ],
+      "id": "c2b620e6-0b30-4db0-9214-a3b492583ed4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3b1e6881-c032-4a44-a0eb-5118bed5a14f",
+              "name": "status",
+              "value": "NORMAL EMAIL",
+              "type": "string"
+            },
+            {
+              "id": "3ef720de-b5cd-4f08-8cda-39f431bb752b",
+              "name": " NORMAL EMAIL",
+              "value": "No immediate action required",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        512,
+        144
+      ],
+      "id": "eda01514-332d-4d57-8068-88283a34881f",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f9cdb4ee-c636-4113-9717-360e027a46d4",
+              "name": "status",
+              "value": "SPAM EMAIL",
+              "type": "string"
+            },
+            {
+              "id": "fa2c0f13-8f09-4fc3-b749-290f8826d65e",
+              "name": "SPAM EMAIL",
+              "value": "Ignore or move to spam",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        512,
+        304
+      ],
+      "id": "606c7cbc-a6cd-4364-8a67-7c36dbb9947a",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        304
+      ],
+      "id": "f920b6d5-64a9-4713-8494-d8aedccd988e",
+      "name": "Send a message in Gmail",
+      "webhookId": "1cf4cf68-4ada-4e2a-93e1-d7558e92234f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MCH3IT5mVtmTfzH6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message_ID', `The ID of the incoming Gmail message that should be labeled.\nUse the message ID from the current incoming email.`, 'string') }}",
+        "labelIds": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Label_Names_or_IDs', `The Gmail label to add to the incoming email.\nUse URGENT for urgent emails or SPAM for spam emails.\nDo not add a label for NORMAL emails.`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        304
+      ],
+      "id": "d43c8bb3-2119-4066-bd08-75722da910b4",
+      "name": "Add label to message in Gmail",
+      "webhookId": "f497f518-f212-4f60-8f19-81b2eea4fce6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MCH3IT5mVtmTfzH6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "avimurkute.009@gmail.com",
+        "subject": "Urgent Email Received",
+        "message": "An urgent email has been received in your inbox.  Please check your Gmail inbox for the urgent message and take immediate action.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        304
+      ],
+      "id": "21685cf9-cc06-4257-bf1c-4d7ec22634a9",
+      "name": "Send a message in Gmail1",
+      "webhookId": "340e6cc5-7c34-4c40-9692-15ecc664fc91",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MCH3IT5mVtmTfzH6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -240,
+        -16
+      ],
+      "id": "bdcb0c9e-5af7-412b-a457-fbb1f67d183c",
+      "name": "When chat message received",
+      "webhookId": "c06f4ba1-b39d-4874-9f2c-f1934c1b26b4"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Send a message in Search and retrieve recent Gmail messages for the user. Use this tool when the user asks to check, read, search, or summarize emails.Gmail",
+        "operation": "getAll",
+        "limit": 5,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        304
+      ],
+      "id": "25a1dc16-c756-44ac-9c23-4d9f6ae01d5d",
+      "name": "Get many messages in Gmail",
+      "webhookId": "e647d215-817d-433c-81ac-522af200cb79",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MCH3IT5mVtmTfzH6",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1c99814b-4b18-4e48-a63a-926ca14e7de7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c5d7ab08c6c5956670dff1a1e42995dd6388782c3ff706aaf890994b881a9f2"
+  },
+  "nodeGroups": [],
+  "id": "c9S4jRlLRuhgQXWX",
+  "tags": []
+}
