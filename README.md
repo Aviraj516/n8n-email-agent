@@ -185,7 +185,7 @@ Through this project, I learned:
 
 Detailed project notes are available here:
 
-[View Project Notes](docs/Notes.pdf)
+[View Project Notes](docs/notes.pdf)
 
 ---
 
